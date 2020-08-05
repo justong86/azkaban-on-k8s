@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: azkaban-web-config
+  namespace: azkaban
+  labels:
+    app: azkaban
+    deloy: web
+data:
+    azkaban-users.xml: |-
+      <azkaban-users>
+        <user groups="azkaban" password="azkaban" roles="admin" username="azkaban"/>
+        <user username="admin" password="admin" groups="azkaban" roles="admin"/>
+        <user username="admin1" password="admin1" groups="azkaban" roles="admin"/>
+        <user password="metrics" roles="metrics" username="metrics"/>
+        <role name="admin" permissions="ADMIN"/>
+        <role name="metrics" permissions="METRICS"/>
+      </azkaban-users>
+
+
+    azkaban-web.properties: |-
+      azkaban.name=Starmerx
+      azkaban.label=My Local Azkaban
+      azkaban.color=#FF3601
+      azkaban.default.servlet.path=/index
+      web.resource.dir=web/
+      default.timezone.id=Asia/Shanghai
+      user.manager.class=azkaban.user.XmlUserManager
+      user.manager.xml.file=conf/users/azkaban-users.xml
+      executor.global.properties=conf/global.properties
+      azkaban.project.dir=projects
+      velocity.dev.mode=false
+      jetty.use.ssl=false
+      jetty.maxThreads=25
+      jetty.port=8081
+      mail.sender=
+      mail.host=
+      job.failure.email=
+      job.success.email=
+      lockdown.create.projects=false
+      cache.directory=cache
+      jetty.connector.stats=true
+      executor.connector.stats=true
+      database.type=mysql
+      mysql.port=3306
+      mysql.host=MYSQL_HOST
+      mysql.database=MYSQL_DB
+      mysql.user=MYSQL_USER_NAME
+      mysql.password=MYSQL_USER_PASSWORD
+      mysql.numconnections=100
+      azkaban.use.multiple.executors=true
+      azkaban.executorselector.filters=StaticRemainingFlowSize,CpuStatus
+      azkaban.executorselector.comparator.NumberOfAssignedFlowComparator=1
+      azkaban.executorselector.comparator.Memory=1
+      azkaban.executorselector.comparator.LastDispatched=1
+      azkaban.executorselector.comparator.CpuUsage=1

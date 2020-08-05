@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+secretGenerator:
+- name: mysql-root-pass
+  namespace: azkaban
+  literals:
+  - password=123456 
+- name: mysql-user-pass
+  namespace: azkaban
+  literals:
+  - password=123456
+resources:
+  - mysql.yaml

@@ -1,0 +1,122 @@
+# azkaban-azkaban-data-pv
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: azkaban-web-log-pv
+  namespace: azkaban
+  labels:
+    app: azkaban
+    deploy: web
+    volume: log
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 300Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /data/pv/azkaban/web/log
+---
+# azkaban-azkaban-data-pvc
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: azkaban-web-log-pvc
+  namespace: azkaban
+  labels:
+    app: azkaban
+    deploy: web
+    volume: log
+spec:
+  selector:
+    matchLabels:
+      app: azkaban
+      deploy: web
+      volume: log
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 300Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: azkaban-web
+  namespace: azkaban
+  labels:
+    app: azkaban
+    deploy: web
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: azkaban
+      deploy: web
+  template:
+    metadata:
+      labels:
+        app: azkaban
+        deploy: web
+    spec:
+      containers:
+        - name: azkaban
+          image: localhost:32000/azkaban:t1
+          args: ["web"]
+          env:
+            - name: MYSQL_HOST
+              value: azkaban-mysql
+            - name: MYSQL_DB
+              value: azkaban
+            - name: MYSQL_USER_NAME
+              value: azkaban
+            - name: MYSQL_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: user-password
+          ports:
+            - containerPort: 8081
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /opt/azkaban/conf/
+            - name: user-config
+              # 如果使用subpath，将不能接受configmap的更新，所以用户文件增加一层文件夹
+              # 实践证明，热更该文件无效
+              mountPath: /opt/azkaban/azkaban-web/conf/users/
+            - name: azkaban-azkaban-log
+              mountPath: /opt/azkaban/azkaban-web/log
+
+      volumes:
+        - name: config
+          configMap:
+            name: azkaban-web-config
+            items:
+              - key: azkaban-web.properties
+                path: azkaban-web.properties
+        - name: user-config
+          configMap:
+            name: azkaban-web-config
+            items:
+              - key: azkaban-users.xml
+                path: azkaban-users.xml
+        - name: azkaban-azkaban-log
+          persistentVolumeClaim:
+            claimName: azkaban-web-log-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: azkaban-web
+  namespace: azkaban
+spec:
+  selector:
+   app: azkaban
+   deploy: web
+  ports:
+  - port: 8081
+    targetPort: 8081

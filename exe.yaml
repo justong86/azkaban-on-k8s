@@ -1,0 +1,96 @@
+# azkaban-azkaban-data-pv
+#apiVersion: v1
+#kind: PersistentVolume
+#metadata:
+#  name: azkaban-exe-pv
+#  labels:
+#    app: azkaban
+#    deploy: exe
+#    volume: log
+#spec:
+#  storageClassName: manual
+#  capacity:
+#    storage: 300Mi
+#  accessModes:
+#    - ReadWriteOnce
+#  hostPath:
+#    path: /data/pv/azkaban/exe/log
+#---
+# azkaban-azkaban-data-pvc
+#apiVersion: v1
+#kind: PersistentVolumeClaim
+#metadata:
+#  name: azkaban-exe-log-pvc
+#  labels:
+#    app: azkaban
+#    deploy: exe
+#    volume: log
+#spec:
+#  selector:
+#    matchLabels:
+#      app: azkaban
+#      deploy: exe
+#      volume: log
+#  accessModes:
+#   - ReadWriteOnce
+# storageClassName: manual
+# resources:
+#   requests:
+#     storage: 300Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: azkaban-exe
+  namespace: azkaban
+  labels:
+    app: azkaban
+    deploy: exe
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: azkaban
+      deploy: exe
+  template:
+    metadata:
+      labels:
+        app: azkaban
+        deploy: exe
+    spec:
+      containers:
+        - name: azkaban
+          image: localhost:32000/azkaban:t1
+          imagePullPolicy: Always
+          #command: ['bash','-c','sleep 1h']
+          args: ["exe"]
+          env:
+            - name: MYSQL_HOST
+              value: azkaban-mysql
+            - name: MYSQL_DB
+              value: azkaban
+            - name: MYSQL_USER_NAME
+              value: azkaban
+            - name: MYSQL_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: user-password
+          volumeMounts:
+            - name: config
+              mountPath: /opt/azkaban/conf/
+          #    subPath: azkaban.properties
+          #- name: azkaban-azkaban-log
+          #  mountPath: /opt/azkaban/azkaban-exec/logs
+      volumes:
+        - name: config
+          configMap:
+            name: azkaban-exe-config
+            items:
+              - key: azkaban-exe.properties
+                path: azkaban-exe.properties
+      #- name: azkaban-azkaban-log
+      #  persistentVolumeClaim:
+      #    claimName: azkaban-exe-pv

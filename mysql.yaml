@@ -1,0 +1,153 @@
+---
+# mysql-data-pv
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: azkaban-mysql-data-pv
+  namespace: azkaban
+  labels:
+    app: azkaban
+    deploy: mysql
+    volume: data
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 500Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /data/pv/azkaban/mysql/data
+---
+# mysql-logs-pv
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: azkaban-mysql-logs-pv
+  namespace: azkaban
+  labels:
+    app: azkaban
+    deploy: mysql
+    volume: logs
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 50Mi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /data/pv/azkaban/mysql/logs
+---
+# mysql-data-pvc
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: azkaban-mysql-data-pvc
+  namespace: azkaban
+spec:
+  selector:
+    matchLabels:
+      app: azkaban
+      deploy: mysql
+      volume: data
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 500Mi
+---
+# mysql-logs-pvc
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: azkaban-mysql-logs-pvc
+  namespace: azkaban
+spec:
+  selector:
+    matchLabels:
+      app: azkaban
+      deploy: mysql
+      volume: logs
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Mi
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: azkaban-mysql
+  namespace: azkaban
+  labels:
+    app: azkaban
+    deploy: mysql
+spec:
+  selector:
+    matchLabels:
+      app: azkaban
+      deploy: mysql
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: azkaban
+        deploy: mysql
+    spec:
+      containers:
+        - image: mysql:5.7
+          name: azkaban-mysql
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: root-password
+            - name: MYSQL_USER
+              value: azkaban
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: user-password
+            - name: MYSQL_DATABASE
+              value: azkaban
+          args:
+            [
+              "--character-set-server=utf8mb4",
+              "--collation-server=utf8mb4_unicode_ci",
+            ]
+          ports:
+            - containerPort: 3306
+              name: mysql
+          volumeMounts:
+            - name: azkaban-mysql-data-volume
+              mountPath: /var/lib/mysql
+            - name: azkaban-mysql-logs-volume
+              mountPath: /var/log/mysql
+      volumes:
+        - name: azkaban-mysql-data-volume
+          persistentVolumeClaim:
+            claimName: azkaban-mysql-data-pvc
+        - name: azkaban-mysql-logs-volume
+          persistentVolumeClaim:
+            claimName: azkaban-mysql-logs-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: azkaban-mysql
+  namespace: azkaban
+  labels:
+    app: azkaban
+    deploy: mysql
+spec:
+  selector:
+    app: azkaban
+    deploy: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
