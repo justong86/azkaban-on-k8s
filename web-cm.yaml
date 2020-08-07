@@ -19,7 +19,7 @@ data:
 
 
     azkaban-web.properties: |-
-      azkaban.name=Starmerx
+      azkaban.name=Your name
       azkaban.label=My Local Azkaban
       azkaban.color=#FF3601
       azkaban.default.servlet.path=/index
