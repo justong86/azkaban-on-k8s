@@ -37,6 +37,7 @@ data:
       mysql.user=MYSQL_USER_NAME
       mysql.password=MYSQL_USER_PASSWORD
       mysql.numconnections=100
+      executor.port=12321
       executor.maxThreads=50
       executor.flow.threads=30
       azkaban.webserver.url=http://localhost:8081

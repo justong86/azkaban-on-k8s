@@ -2,13 +2,17 @@ FROM openjdk:8u252-jre
 
 MAINTAINER zang
 
-RUN sed -i 's#http://deb.debian.org#https://mirrors.aliyun.com#g' /etc/apt/sources.list
+# debian：buster(10)
+RUN echo "deb http://mirrors.aliyun.com/debian/ buster main non-free contrib" > /etc/apt/sources.list \
+ && echo "deb http://mirrors.aliyun.com/debian-security buster/updates main" >> /etc/apt/sources.list \
+ && echo "deb http://mirrors.aliyun.com/debian/ buster-updates main non-free contrib" >> /etc/apt/sources.list 
 
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
 		procps \
         vim \
+		mariadb-client \
 	; \
 	rm -rf /var/lib/apt/lists/*
 
@@ -21,6 +25,8 @@ RUN mkdir -p /opt/azkaban \
  && ln -s /opt/azkaban/azkaban-web-server-3.84.4 /opt/azkaban/azkaban-web \
  && mv /tmp/start-azkaban.sh /usr/bin \
  && chmod a+x /usr/bin/start-azkaban.sh \
+ && mv /tmp/active-exe.sh /usr/bin \
+ && chmod a+x /usr/bin/active-exe.sh \
  && rm -rf /tmp/* 
 
 WORKDIR /opt/azkaban/

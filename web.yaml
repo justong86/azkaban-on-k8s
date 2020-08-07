@@ -64,7 +64,7 @@ spec:
     spec:
       containers:
         - name: azkaban
-          image: localhost:32000/azkaban:t1
+          image: localhost:32000/azkaban:t3
           args: ["web"]
           env:
             - name: MYSQL_HOST
@@ -86,7 +86,7 @@ spec:
               mountPath: /opt/azkaban/conf/
             - name: user-config
               # 如果使用subpath，将不能接受configmap的更新，所以用户文件增加一层文件夹
-              # 实践证明，热更该文件无效
+              # 实践证明无效，热更该文件,azkaban也不接受新的信息
               mountPath: /opt/azkaban/azkaban-web/conf/users/
             - name: azkaban-azkaban-log
               mountPath: /opt/azkaban/azkaban-web/log
@@ -117,6 +117,8 @@ spec:
   selector:
    app: azkaban
    deploy: web
+  type: NodePort
   ports:
   - port: 8081
     targetPort: 8081
+    nodePort: 31081

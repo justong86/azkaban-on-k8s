@@ -1,71 +1,43 @@
-# azkaban-azkaban-data-pv
-#apiVersion: v1
-#kind: PersistentVolume
-#metadata:
-#  name: azkaban-exe-pv
-#  labels:
-#    app: azkaban
-#    deploy: exe
-#    volume: log
-#spec:
-#  storageClassName: manual
-#  capacity:
-#    storage: 300Mi
-#  accessModes:
-#    - ReadWriteOnce
-#  hostPath:
-#    path: /data/pv/azkaban/exe/log
-#---
-# azkaban-azkaban-data-pvc
-#apiVersion: v1
-#kind: PersistentVolumeClaim
-#metadata:
-#  name: azkaban-exe-log-pvc
-#  labels:
-#    app: azkaban
-#    deploy: exe
-#    volume: log
-#spec:
-#  selector:
-#    matchLabels:
-#      app: azkaban
-#      deploy: exe
-#      volume: log
-#  accessModes:
-#   - ReadWriteOnce
-# storageClassName: manual
-# resources:
-#   requests:
-#     storage: 300Mi
----
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: azkaban-exe
   namespace: azkaban
-  labels:
-    app: azkaban
-    deploy: exe
 spec:
-  replicas: 1
-  strategy:
-    type: Recreate
+  serviceName: "azkaban-exe"
   selector:
     matchLabels:
       app: azkaban
       deploy: exe
+  replicas: 1
   template:
     metadata:
       labels:
         app: azkaban
         deploy: exe
     spec:
+      terminationGracePeriodSeconds: 20
       containers:
         - name: azkaban
-          image: localhost:32000/azkaban:t1
-          imagePullPolicy: Always
+          image: localhost:32000/azkaban:t3
+          #imagePullPolicy: Always
           #command: ['bash','-c','sleep 1h']
           args: ["exe"]
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/bash
+                  - -c
+                  - active-exe.sh
+                  #- curl "http://`hostname -A|awk '$1=$1'`:12321/executor?action=activate"
+            preStop:
+              exec:
+                command: 
+                  #- mysql -u${MYSQL_USER_NAME} -p${MYSQL_USER_PASSWORD} -h${MYSQL_HOST} ${MYSQL_DB} -e "SELECT * FROM executors" 
+                  - /bin/bash
+                  - -c 
+                  - mysql -u${MYSQL_USER_NAME} -p${MYSQL_USER_PASSWORD} -h${MYSQL_HOST} ${MYSQL_DB} -e "UPDATE executors SET active=0 WHERE host='`hostname -A`'"
           env:
             - name: MYSQL_HOST
               value: azkaban-mysql
@@ -81,9 +53,6 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /opt/azkaban/conf/
-          #    subPath: azkaban.properties
-          #- name: azkaban-azkaban-log
-          #  mountPath: /opt/azkaban/azkaban-exec/logs
       volumes:
         - name: config
           configMap:
@@ -91,6 +60,17 @@ spec:
             items:
               - key: azkaban-exe.properties
                 path: azkaban-exe.properties
-      #- name: azkaban-azkaban-log
-      #  persistentVolumeClaim:
-      #    claimName: azkaban-exe-pv
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: azkaban-exe
+  namespace: azkaban
+spec:
+  selector:
+    app: azkaban
+    deploy: exe
+  clusterIP: None
+  ports:
+    - port: 12321
+      targetPort: 12321
