@@ -1,5 +1,6 @@
 
 ### 建立镜像
+使用编译好的azkaban 3.84.4版本建立镜像
 
 ```
 cd dockerfile
